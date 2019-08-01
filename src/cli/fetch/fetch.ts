@@ -1,5 +1,6 @@
 import yargs from 'yargs';
 import { buildFetchGutenberg, execFetchGutenberg } from './gutenberg';
+import { buildFetchWikimedia, execFetchWikimedia } from './wikimedia';
 
 export function buildFetchers(y: yargs.Argv<{}>): yargs.Argv<{}> {
   return y
@@ -29,6 +30,12 @@ export function buildFetchers(y: yargs.Argv<{}>): yargs.Argv<{}> {
       'Download Project Gutenberg Library',
       buildFetchGutenberg,
       execFetchGutenberg,
+    )
+    .command(
+      'wikimedia',
+      'Download Wikimedia Site Dumps',
+      buildFetchWikimedia,
+      execFetchWikimedia,
     )
     .demandCommand();
 }

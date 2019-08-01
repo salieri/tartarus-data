@@ -1,11 +1,11 @@
 import yargs from 'yargs';
 import chalk from 'chalk';
+import _ from 'lodash';
 
 import {
-  FetchTaskOptionsInput,
-  GutenbergFetchTask,
-  GutenbergCatalogFetchTask,
   Task,
+  WikimediaFetchTask,
+  WikimediaFetchTaskOptionsInput,
 } from '../../task';
 
 
@@ -45,29 +45,41 @@ export function buildFetchWikimedia(y: yargs.Argv<{}>): yargs.Argv<{}> {
 }
 
 
-export async function execFetchGutenberg(argv: yargs.Arguments): Promise<void> {
-  const opts: FetchTaskOptionsInput = {
-    mode: argv.mode as string,
-    basePath: argv.output as string,
-    verbosity: Task.getLogLevel(argv.verbosity as string),
-  };
+interface LanguageSitePair {
+  site: string;
+  language: string;
+}
 
-  const promises: Promise<any>[] = [];
+export async function execFetchWikimedia(argv: yargs.Arguments): Promise<void> {
+  const permutations: LanguageSitePair[] = _.flatten(
+    _.map(
+      argv.language as string[],
+      language => _.map(
+          argv.site as string[],
+          site => ({ language, site }),
+      ),
+    ),
+  );
 
-  if (argv.catalog) {
-    const catalogTask = new GutenbergCatalogFetchTask(opts);
+  const promises = _.map(
+    permutations,
+    (pm) => {
+      const opts: WikimediaFetchTaskOptionsInput = {
+        mode: argv.mode as string,
+        basePath: argv.output as string,
+        verbosity: Task.getLogLevel(argv.verbosity as string),
+        lang: pm.language,
+        siteType: pm.site,
+      };
 
-    promises.push(catalogTask.run());
-  }
+      const task = new WikimediaFetchTask(opts);
 
-  if (argv.library) {
-    const libraryTask = new GutenbergFetchTask(opts);
-
-    promises.push(libraryTask.run());
-  }
+      return task.run();
+    },
+  );
 
   await Promise.all(promises);
 
-  console.log(`\n##### Download complete! #####\n\nFiles have been stored in ${chalk.bold(opts.basePath as string)}`);
+  console.log(`\n##### Download complete! #####\n\nFiles have been stored in ${chalk.bold(argv.output as string)}`);
 }
 
