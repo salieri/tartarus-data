@@ -1,4 +1,4 @@
-import * as yargs from 'yargs';
+import yargs from 'yargs';
 import { buildFetchGutenberg, execFetchGutenberg } from './gutenberg';
 
 export function buildFetchers(y: yargs.Argv<{}>): yargs.Argv<{}> {

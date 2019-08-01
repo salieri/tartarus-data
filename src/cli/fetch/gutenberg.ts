@@ -1,4 +1,5 @@
-import * as yargs from 'yargs';
+import yargs from 'yargs';
+import chalk from 'chalk';
 
 import {
   FetchTaskOptionsInput,
@@ -53,5 +54,7 @@ export async function execFetchGutenberg(argv: yargs.Arguments): Promise<void> {
   }
 
   await Promise.all(promises);
+
+  console.log(`\n##### Download complete! #####\n\nFiles have been stored in ${chalk.bold(opts.basePath as string)}`);
 }
 

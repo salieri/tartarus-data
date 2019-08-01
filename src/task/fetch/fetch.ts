@@ -26,23 +26,24 @@ export interface FetchTaskOptionsInput extends TaskOptionsInput {
 
 
 export abstract class FetchTask extends Task {
+  // eslint-disable-next-line no-unused-vars
   protected output(relativePath: string): void {
-    const absolutePath = this.getPath(relativePath);
-
-    const opts = this.getOpts();
-
-    if ((fs.existsSync(absolutePath)) && (opts.mode !== FetchTaskMode.Force)) {
-      if (opts.mode === FetchTaskMode.Skip) {
-        this.report(LogLevel.Warn, `${chalk.bold(absolutePath)} exists -- skipping ${chalk.bold(this.name)}`);
-
-        this.skip();
-        return;
-      }
-
-      throw new Error(
-        `Output path ${chalk.bold(absolutePath)} already exists (use ${chalk.bold(`--mode=${FetchTaskMode.Force}`)} to override)`,
-      );
-    }
+  //   const absolutePath = this.getPath(relativePath);
+  //
+  //   const opts = this.getOpts();
+  //
+  //   if ((fs.existsSync(absolutePath)) && (opts.mode !== FetchTaskMode.Force)) {
+  //     if (opts.mode === FetchTaskMode.Skip) {
+  //       this.report(LogLevel.Warn, `${chalk.bold(absolutePath)} exists -- skipping ${chalk.bold(this.name)}`);
+  //
+  //       this.skip();
+  //       return;
+  //     }
+  //
+  //     throw new Error(
+  //       `Output path ${chalk.bold(absolutePath)} already exists (use ${chalk.bold(`--mode=${FetchTaskMode.Force}`)} to override)`,
+  //     );
+  //   }
   }
 
 

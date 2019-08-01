@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "td" : "./dist/cli/index.js"
+    "td": "./dist/cli/index.js"
   },
   "files": [
     "dist/**/*"
@@ -42,6 +42,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "@hapi/joi": "^15.1.0",
+    "basic-ftp": "^3.8.0",
     "chalk": "^2.4.2",
     "commander": "^2.20.0",
     "execa": "^2.0.3",
