@@ -5,7 +5,8 @@
 	  "trailing-comma"              : false,
 	  "import-name"                 : false,
     "no-consecutive-blank-lines"  : [true, 2],
-    "max-line-length"             : [true, 140]
+    "max-line-length"             : [true, 140],
+    "ter-indent"                  : false
   },
 
   "linterOptions": {

@@ -2,7 +2,14 @@
   "name": "@tartarus/data",
   "version": "0.1.0",
   "description": "Helper tools for downloading and building datasets",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "td" : "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/**/*"
+  ],
   "keywords": [
     "tartarus",
     "deep learning",
@@ -13,7 +20,8 @@
     "nn"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "mocha --reporter spec 'test/**/*.ts'"
   },
   "repository": {
     "type": "git",
@@ -31,11 +39,18 @@
   "engines": {
     "node": ">= 8.0.0"
   },
-  "dependencies" : {
+  "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "@hapi/joi": "^15.1.0",
+    "chalk": "^2.4.2",
+    "commander": "^2.20.0",
+    "execa": "^2.0.3",
     "js-sha256": "^0.9.0",
-    "lodash": "^4.17.14"
+    "lodash": "^4.17.14",
+    "shell-escape": "^0.2.0",
+    "shelljs": "^0.8.3",
+    "untildify": "^4.0.0",
+    "yargs": "^13.3.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.0",
@@ -48,9 +63,13 @@
     "@babel/register": "^7.4.4",
     "@types/chai": "^4.1.7",
     "@types/chai-as-promised": "^7.1.0",
+    "@types/commander": "^2.12.2",
     "@types/hapi__joi": "^15.0.2",
     "@types/lodash": "^4.14.136",
     "@types/mocha": "^5.2.7",
+    "@types/node": "^12.6.8",
+    "@types/shell-escape": "^0.2.0",
+    "@types/yargs": "^13.0.2",
     "@typescript-eslint/eslint-plugin": "^1.11.0",
     "@typescript-eslint/parser": "^1.11.0",
     "babel-plugin-module-resolver": "^3.2.0",

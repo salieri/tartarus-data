@@ -2,14 +2,19 @@
 
 Various scripts for downloading and building datasets.
 
-```bash
-# Determine download path
-export DOWNLOAD_PATH=/my/download/path
+## Usage
 
-# Download Gutenberg library and catalogue
-tf down gutenberg
-tf down gutenberg-catalogue
+```bash
+# Download Gutenberg Library and catalogue
+td fetch gutenberg --output /my/download/path
 
 # Download English Wikimedia dump (Wikipedia, Wikiquote, etc.)
-tf down wikimedia
+td fetch wikimedia --output /my/download/path --lang en --include wiki,wikiquote
 ```
+
+## Prerequisites
+
+Requires `node` and `wget`.
+
+(Tested on MacOS with `node==10.14.2` and `wget==1.20.3`.)
+
