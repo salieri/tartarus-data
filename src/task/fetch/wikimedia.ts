@@ -1,6 +1,7 @@
 import path from 'path';
 import shelljs from 'shelljs';
 import Joi from '@hapi/joi';
+import chalk from 'chalk';
 
 import {
   FetchTask,
@@ -42,6 +43,8 @@ export class WikimediaFetchTask extends FetchTask {
     const dumpPath = await this.getDumpPath();
     const outputPath = this.getOutputPath();
     const dumpUrl = `ftp://${WikimediaFetchTask.WIKI_DUMP_HOST}${dumpPath}`;
+
+    this.report(LogLevel.Info, `Latest complete dump in ${chalk.bold(dumpPath)}`);
 
     const opts = this.getOpts();
 

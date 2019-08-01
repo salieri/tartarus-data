@@ -1,22 +1,22 @@
-import Ftp, { FileInfo } from 'basic-ftp';
+import { AccessOptions, Client, FileInfo } from 'basic-ftp';
 import _ from 'lodash';
 import chalk from 'chalk';
 import path from 'path';
-import { Writable } from 'stream';
+import StreamBuffer from 'stream-buffers';
 
 export class WikiDumpAnalyzer {
-  private ftpOpts: Ftp.AccessOptions;
+  private ftpOpts: AccessOptions;
 
   private baseFtpPath: string;
 
-  public constructor(ftpOpts: Ftp.AccessOptions, baseFtpPath: string) {
+  public constructor(ftpOpts: AccessOptions, baseFtpPath: string) {
     this.ftpOpts = ftpOpts;
     this.baseFtpPath = baseFtpPath;
   }
 
 
   public async getLatestCompletedDumpPath(): Promise<string> {
-    const client = new Ftp.Client();
+    const client = new Client();
 
     await client.access(this.ftpOpts);
 
@@ -28,7 +28,7 @@ export class WikiDumpAnalyzer {
         (f: FileInfo) => ((f.type === 2) && (f.name.match(/^[0-9]{8}$/))),
       ),
       'name',
-    ).reverse() as Ftp.FileInfo[];
+    ).reverse() as FileInfo[];
 
 
     for (let index = 0; index < orderedDirs.length; index += 1) {
@@ -36,12 +36,14 @@ export class WikiDumpAnalyzer {
       const pathName = path.join(this.baseFtpPath, d.name);
 
       try {
-        const tempStream = new Writable();
+        const tempStream = new StreamBuffer.WritableStreamBuffer();
 
         // eslint-disable-next-line no-await-in-loop
         await client.download(tempStream, path.join(pathName, 'dumpstatus.json'));
 
-        if (this.allJobsComplete(JSON.parse(tempStream.toString()))) {
+        const dumpData = JSON.parse(tempStream.getContentsAsString('utf8') as string);
+
+        if (this.allJobsComplete(dumpData)) {
           client.close();
 
           return pathName;
