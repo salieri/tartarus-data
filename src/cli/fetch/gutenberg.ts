@@ -1,5 +1,6 @@
 import yargs from 'yargs';
 import chalk from 'chalk';
+import _ from 'lodash';
 
 import {
   FetchTaskOptionsInput,
@@ -28,6 +29,15 @@ export function buildFetchGutenberg(y: yargs.Argv<{}>): yargs.Argv<{}> {
         type: 'boolean',
         default: false,
       },
+    )
+    .option(
+      'with-images',
+      {
+        alias: 'i',
+        describe: 'Download scanned pages',
+        type: 'boolean',
+        default: false,
+      },
     );
 }
 
@@ -48,7 +58,7 @@ export async function execFetchGutenberg(argv: yargs.Arguments): Promise<void> {
   }
 
   if (argv.library) {
-    const libraryTask = new GutenbergFetchTask(opts);
+    const libraryTask = new GutenbergFetchTask(_.merge(opts, { withImages: argv.withImages as boolean }));
 
     promises.push(libraryTask.run());
   }
