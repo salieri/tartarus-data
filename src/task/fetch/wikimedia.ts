@@ -64,6 +64,8 @@ export class WikimediaFetchTask extends FetchTask {
         '--page-requisites',
         '--no-host-directories',
         '--timestamping',
+        '--reject', '*logging*,*meta-history*,*.7z',
+        '--no-directories',
         '--directory-prefix', outputPath,
         ...(opts.mode === FetchTaskMode.Continue ? ['--continue'] : []),
         ...(opts.mode === FetchTaskMode.Skip ? ['--no-clobber'] : []),
