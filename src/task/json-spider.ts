@@ -8,7 +8,7 @@ import { promisify } from 'util';
 
 import { Task, TaskOptionsInput } from './task';
 
-const version = JSON.parse(fs.readFileSync('./package.json', 'utf8')).version as string;
+const version = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8')).version as string;
 const wait = promisify(setTimeout);
 
 
