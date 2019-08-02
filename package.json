@@ -1,6 +1,6 @@
 {
   "name": "@tartarus/data",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Helper tools for downloading and building datasets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "mocha --reporter spec 'test/**/*.ts'"
+    "test": "mocha --reporter spec 'test/**/*.ts'",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
