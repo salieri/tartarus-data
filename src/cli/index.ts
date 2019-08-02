@@ -2,6 +2,7 @@
 
 import yargs from 'yargs';
 import { buildFetchers } from './fetch';
+import { buildSpiders } from './spider';
 
 // eslint-disable-next-line no-unused-expressions
 yargs
@@ -21,6 +22,11 @@ yargs
     'fetch',
     'Data download commands',
     y => buildFetchers(y),
+  )
+  .command(
+    'spider',
+    'Data spider commands',
+    y => buildSpiders(y),
   )
   .wrap(null)
   .demandCommand()

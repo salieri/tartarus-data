@@ -89,3 +89,5 @@ test/**/*.js
 
 /dist/
 
+/draft/
+
