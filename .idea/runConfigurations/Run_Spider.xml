@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run Spider" type="NodeJSConfigurationType" application-parameters="spider --site ../../draft/test2.ts --output ~/tartarus-data-files/test --verbosity debug" path-to-node="$PROJECT_DIR$/node_modules/.bin/ts-node" path-to-js-file="./src/cli/index.ts" working-dir="$PROJECT_DIR$">
+    <method v="2" />
+  </configuration>
+</component>

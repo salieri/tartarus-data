@@ -1,49 +1,41 @@
 import yargs from 'yargs';
-import fs from 'fs';
 
-import { JsonSpiderTask } from '../task/json-spider';
+import { SpiderTask } from '../task/spider';
 import { Task, TaskOptionsInput } from '../task';
 
-export function buildSpiders(y: yargs.Argv<{}>): yargs.Argv<{}> {
+export function buildSpider(y: yargs.Argv<{}>): yargs.Argv<{}> {
   return y
-    .command(
-      'json',
-      'Spider through JSON data',
-      // eslint-disable-next-line arrow-body-style
-      (yy: yargs.Argv<{}>): yargs.Argv<{}> => {
-        return yy
-          .option(
-            'site',
-            {
-              alias: 's',
-              describe: 'Site description JSON file',
-              type: 'string',
-              requiresArg: true,
-            },
-          )
-          .option(
-            'output',
-            {
-              alias: 'o',
-              describe: 'Output path',
-              default: process.env.TARTARUS_DATA_PATH || '~/tartarus-data-files',
-              type: 'string',
-              requiresArg: true,
-            },
-          );
-      },
-      async (argv: yargs.Arguments): Promise<void> => {
-        const siteConfig = JSON.parse(fs.readFileSync(argv.site as string, 'utf8'));
-
-        const opts: TaskOptionsInput = {
-          basePath: argv.output as string,
-          verbosity: Task.getLogLevel(argv.verbosity as string),
-        };
-
-        const task = new JsonSpiderTask(opts, siteConfig);
-
-        await task.run();
+    .option(
+      'site',
+      {
+        alias: 's',
+        describe: 'Site definition TypeScript or JavaScript file',
+        type: 'string',
+        requiresArg: true,
       },
     )
-    .demandCommand();
+    .option(
+      'output',
+      {
+        alias: 'o',
+        describe: 'Output path',
+        default: process.env.TARTARUS_DATA_PATH || '~/tartarus-data-files',
+        type: 'string',
+        requiresArg: true,
+      },
+    );
 }
+
+export async function execSpider(argv: yargs.Arguments): Promise<void> {
+  const siteDefinition = (await import(argv.site as string)).default;
+
+  const opts: TaskOptionsInput = {
+    basePath: argv.output as string,
+    verbosity: Task.getLogLevel(argv.verbosity as string),
+  };
+
+  const task = new SpiderTask(opts, siteDefinition);
+
+  await task.run();
+}
+
