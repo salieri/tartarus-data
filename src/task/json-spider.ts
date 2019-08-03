@@ -223,7 +223,7 @@ export class JsonSpiderTask extends Task {
       genericStore.filename,
     );
 
-    const filePath = this.getPath(this.getSubPaths(fn, genericStore.subDirectoryDepth, this.siteConfig.name));
+    const filePath = this.getPath(this.getSubPaths(path.basename(fn, '.json'), genericStore.subDirectoryDepth, this.siteConfig.name));
 
     shelljs.mkdir('-p', filePath);
 
