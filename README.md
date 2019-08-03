@@ -12,7 +12,7 @@ npx -p @tartarus/data td fetch wikimedia --output /tmp/
 ## Usage
 
 ```bash
-# Download Project Gutenberg Library and catalogue
+# Download Project Gutenberg library and catalogue
 td fetch gutenberg --output /my/download/path
 
 # Download Wikimedia dumps for English and Spanish language Wikipedia and Wikiquote 

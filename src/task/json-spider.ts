@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import path from 'path';
 import shelljs from 'shelljs';
 import _ from 'lodash';
@@ -6,7 +7,13 @@ import fs from 'fs';
 import axios from 'axios';
 import { promisify } from 'util';
 
-import { Task, TaskOptionsInput } from './task';
+import {
+  Task,
+  TaskOptionsInput,
+  LogLevel,
+  TaskOptions,
+} from './task';
+
 
 const version = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8')).version as string;
 const wait = promisify(setTimeout);
@@ -123,8 +130,22 @@ export interface JsonSpiderSiteConfig extends JsonSpiderSiteConfigInput {
 }
 
 
+export interface JsonSpiderTaskOptionsInput extends TaskOptionsInput {
+  maxRetries?: number;
+  retryDelay?: number;
+}
+
+
+export interface JsonSpiderTaskOptions extends TaskOptions {
+  maxRetries: number;
+  retryDelay: number;
+}
+
+
 export class JsonSpiderTask extends Task {
   protected siteConfig: JsonSpiderSiteConfig;
+
+  protected static readonly recoverableHttpStatuses = [502, 503, 504];
 
 
   public constructor(opts: TaskOptionsInput, siteConfig: JsonSpiderSiteConfigInput) {
@@ -193,11 +214,17 @@ export class JsonSpiderTask extends Task {
 
 
   protected getSubPaths(fn: string, depth: number, name: string): string {
-    return _.reduce(
+    const subPaths = _.reduce(
       _.times(depth),
-      (result, value) => `${result}${fn.substr(value, 1) || '_'}/`,
-      `${name.toLowerCase().replace(/[^a-z0-9_.-]/g, '_')}/`,
+      (result, value) => {
+        const c = fn.substr(value, 1);
+
+        return c ? path.join(result, c) : path.join('0', result);
+      },
+      '',
     );
+
+    return path.join(name.toLowerCase().replace(/[^a-z0-9_.-]/g, '_'), subPaths);
   }
 
 
@@ -229,35 +256,104 @@ export class JsonSpiderTask extends Task {
 
     const finalFn = path.join(filePath, fn);
 
+    this.report(LogLevel.Info, `Storing result to ${chalk.bold(finalFn)}`);
+
     fs.writeFileSync(finalFn, JSON.stringify(lastResult), 'utf8');
   }
 
 
+  protected async attemptQuery(iteration: number, lastResult: any): Promise<any> {
+    const finalUrl = this.determineNextQueryUrl(iteration, lastResult);
+
+    this.report(LogLevel.Info, `Fetching ${chalk.bold(finalUrl)}`);
+
+    // eslint-disable-next-line no-await-in-loop
+    const lastResultResponse = await axios.get(
+      finalUrl,
+      {
+        headers: { 'User-Agent': this.siteConfig.agent },
+        responseType: 'json',
+      },
+    );
+
+    this.report(LogLevel.Debug, `Response ${lastResultResponse.status}`);
+
+    const newLastResult = lastResultResponse.data;
+
+    // eslint-disable-next-line no-await-in-loop
+    await this.storeResult(iteration, newLastResult);
+
+    return newLastResult;
+  }
+
+
+  protected isRecoverableError(err: any): boolean {
+    return (
+      ((err.request) && (!err.response)) // connection failed
+      || (
+        // response failed in a recoverable way
+        (err.response)
+        && (err.response.status)
+        && (JsonSpiderTask.recoverableHttpStatuses.indexOf(err.response.status) >= 0)
+      )
+    );
+  }
+
+  /* eslint-disable no-await-in-loop */
   public async run(): Promise<void> {
+    const opts = this.getOpts();
+
     let iteration = 0;
     let lastResult: any = null;
 
     do {
-      const finalUrl = this.determineNextQueryUrl(iteration, lastResult);
+      let success = false;
 
-      // eslint-disable-next-line no-await-in-loop
-      const lastResultResponse = await axios.get(
-        finalUrl,
-        {
-          headers: { 'User-Agent': this.siteConfig.agent },
-          responseType: 'json',
-        },
-      );
+      for (let attempt = 0; (attempt < opts.maxRetries) && (success === false); attempt += 1) {
+        try {
+          lastResult = await this.attemptQuery(iteration, lastResult);
 
-      lastResult = lastResultResponse.data;
+          success = true;
 
-      // eslint-disable-next-line no-await-in-loop
-      await this.storeResult(iteration, lastResult);
+          await wait(this.siteConfig.delay);
+        } catch (err) {
+          this.report(LogLevel.Info, 'Fetch failed', err);
 
-      // eslint-disable-next-line no-await-in-loop
-      await wait(this.siteConfig.delay);
+          if (!this.isRecoverableError(err)) {
+            throw err;
+          }
+
+          if (attempt < opts.maxRetries - 1) {
+            this.report(LogLevel.Info, `Retrying URL after server responded with error ${err.response.status}`, err);
+
+            await wait(opts.retryDelay);
+          }
+        }
+      }
+
+      if (!success) {
+        throw new Error(`Could not successfully retrieve URL, even after ${opts.maxRetries} retries`);
+      }
 
       iteration += 1;
-    } while (lastResult);
+    } while (!_.isEmpty(lastResult));
+  }
+
+
+  protected getOpts(): JsonSpiderTaskOptions {
+    return this.opts as JsonSpiderTaskOptions;
+  }
+
+
+  protected getOptionsSchema(): Joi.Schema {
+    const base = super.getOptionsSchema() as Joi.ObjectSchema;
+
+    return base.keys(
+      {
+        maxRetries: Joi.number().optional().default(10),
+        retryDelay: Joi.number().optional().default(15000),
+      },
+    );
   }
 }
+
