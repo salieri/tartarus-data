@@ -1,8 +1,7 @@
-import chalk from 'chalk';
+import _ from 'lodash';
 import path from 'path';
 import Joi from '@hapi/joi';
 import fs from 'fs';
-import axios from 'axios';
 import { promisify } from 'util';
 
 import {
@@ -13,7 +12,7 @@ import {
 
 import { SpiderHandle } from './handle';
 import { SpiderStore } from './store';
-import { SpiderNavigator } from './navigator';
+import { RecoverableSpiderNavigatorFetchError, SpiderNavigator } from './navigator';
 import { SpiderData } from './data';
 
 
@@ -101,8 +100,6 @@ export class SpiderTask extends Task {
 
   protected data: SpiderData;
 
-  protected static readonly recoverableHttpStatuses = [502, 503, 504];
-
 
   public constructor(opts: TaskOptionsInput, siteConfig: SpiderSiteConfigInput) {
     super(`Spider (${siteConfig.name})`, opts);
@@ -126,50 +123,8 @@ export class SpiderTask extends Task {
   }
 
 
-  protected async attemptQuery(previousHandle: SpiderHandle, iteration: number): Promise<SpiderHandle | null> {
-    const finalUrl = this.navigator.getNextUrl(previousHandle);
-
-    if (!finalUrl) {
-      return null;
-    }
-
-    this.report(LogLevel.Info, `Fetching ${chalk.bold(finalUrl)}`);
-
-    const response = await axios.request(
-      {
-        url: finalUrl,
-        method: this.siteConfig.request.method,
-        headers: this.siteConfig.request.headers,
-        responseType: 'arraybuffer',
-        responseEncoding: this.siteConfig.request.responseEncoding,
-      } as any,
-    );
-
-    this.report(LogLevel.Debug, `Response ${response.status}`);
-
-    const data = await this.data.parse(response.data.toString());
-
-    const newHandle = new SpiderHandle(
-      this,
-      iteration,
-      response,
-      data,
-    );
-
-    return await this.store.save(newHandle) ? newHandle : null;
-  }
-
-
   protected isRecoverableError(err: any): boolean {
-    return (
-      ((err.request) && (!err.response)) // connection failed
-      || (
-        // response failed in a recoverable way
-        (err.response)
-        && (err.response.status)
-        && (SpiderTask.recoverableHttpStatuses.indexOf(err.response.status) >= 0)
-      )
-    );
+    return err instanceof RecoverableSpiderNavigatorFetchError;
   }
 
 
@@ -187,26 +142,29 @@ export class SpiderTask extends Task {
 
       for (let attempt = 0; (attempt < maxRetries) && (!success); attempt += 1) {
         try {
-          const handle = await this.attemptQuery(lastHandle, iteration);
+          const newHandle = await this.navigator.attemptFetch(lastHandle, iteration);
 
-          if (!handle) {
-            // download complete
+          if ((!newHandle) || (!(await this.store.save(newHandle)))) {
             return;
           }
 
-          lastHandle = handle;
+          lastHandle = newHandle;
           success = true;
 
           await wait(delay);
         } catch (err) {
-          this.report(LogLevel.Info, 'Fetch failed', err);
+          this.report(LogLevel.Info, 'Fetch failed', err.originalError || err);
 
           if (!this.isRecoverableError(err)) {
             throw err;
           }
 
           if (attempt < maxRetries - 1) {
-            this.report(LogLevel.Info, `Retrying URL after server responded with error ${err.response.status}`, err);
+            this.report(
+              LogLevel.Info,
+              `Retrying URL after server responded with error ${_.get(err, 'originalError.response.status')}`,
+              err,
+            );
 
             await wait(retryDelay);
           }
@@ -214,7 +172,7 @@ export class SpiderTask extends Task {
       }
 
       if (!success) {
-        throw new Error(`Could not successfully retrieve URL, even after ${maxRetries} retries`);
+        throw new Error(`Could not successfully retrieve file, even after ${maxRetries} retries`);
       }
 
       iteration += 1;
@@ -229,6 +187,11 @@ export class SpiderTask extends Task {
 
   public getSiteConfig(): SpiderSiteConfig {
     return this.siteConfig;
+  }
+
+
+  public getData(): SpiderData {
+    return this.data;
   }
 }
 

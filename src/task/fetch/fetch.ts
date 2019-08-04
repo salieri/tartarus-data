@@ -1,10 +1,7 @@
-import fs from 'fs';
-import chalk from 'chalk';
 import Joi from '@hapi/joi';
 import _ from 'lodash';
 
 import {
-  LogLevel,
   Task,
   TaskOptions,
   TaskOptionsInput,

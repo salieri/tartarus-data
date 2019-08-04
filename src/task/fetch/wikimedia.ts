@@ -10,7 +10,7 @@ import {
   FetchTaskOptionsInput,
 } from './fetch';
 
-import { WikiDumpAnalyzer } from '../../wiki/dump-analyzer';
+import { WikiDumpAnalyzer } from '../../wiki';
 import { LogLevel } from '../task';
 
 export interface WikimediaFetchTaskOptions extends FetchTaskOptions {

@@ -79,15 +79,14 @@ fastlane/README.md
 # NYC
 .nyc_output/
 
-
 docs/
 
 src/**/*.js
 test/**/*.js
 !test/typescriptify.js
 
-
 /dist/
-
 /draft/
 
+nohup.out
+nohup*.out

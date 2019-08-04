@@ -1,6 +1,6 @@
-import { AxiosResponse } from 'axios';
 import { SpiderParsedData } from './data';
 import { SpiderSiteConfig, SpiderTask } from './spider';
+import { SpiderNavigatorFetchResponse } from './navigator';
 
 
 export class SpiderHandle {
@@ -8,7 +8,7 @@ export class SpiderHandle {
 
   protected iteration: number;
 
-  protected response: AxiosResponse | null;
+  protected response: SpiderNavigatorFetchResponse | null;
 
   protected responseData: SpiderParsedData | null;
 
@@ -16,7 +16,7 @@ export class SpiderHandle {
   public constructor(
     task: SpiderTask,
     iteration: number,
-    response: AxiosResponse | null,
+    response: SpiderNavigatorFetchResponse | null,
     responseData: SpiderParsedData | null,
   ) {
     this.task = task;
@@ -30,13 +30,13 @@ export class SpiderHandle {
   }
 
 
-  public getResponse(): AxiosResponse | null {
+  public getResponse(): SpiderNavigatorFetchResponse | null {
     return this.response;
   }
 
 
-  public getBaseUrl(): string {
-    return this.getSiteConfig().navigator.getBaseUrl();
+  public getBaseTarget(): string {
+    return this.getSiteConfig().navigator.getBaseTarget();
   }
 
 
@@ -52,5 +52,10 @@ export class SpiderHandle {
 
   public getSiteConfig(): SpiderSiteConfig {
     return this.task.getSiteConfig();
+  }
+
+
+  public getSpider(): SpiderTask {
+    return this.task;
   }
 }

@@ -133,7 +133,7 @@ export abstract class Task {
   }
 
 
-  protected report(level: LogLevel, ...reportData: any[]): void {
+  public report(level: LogLevel, ...reportData: any[]): void {
     if (level < this.opts.verbosity) {
       return;
     }
