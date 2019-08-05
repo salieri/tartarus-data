@@ -1,4 +1,5 @@
 import yargs from 'yargs';
+import untildify from 'untildify';
 
 import { SpiderTask } from '../task/spider';
 import { Task, TaskOptionsInput } from '../task';
@@ -27,7 +28,7 @@ export function buildSpider(y: yargs.Argv<{}>): yargs.Argv<{}> {
 }
 
 export async function execSpider(argv: yargs.Arguments): Promise<void> {
-  const siteDefinition = (await import(argv.site as string)).default;
+  const siteDefinition = (await import(untildify(argv.site as string))).default;
 
   const opts: TaskOptionsInput = {
     basePath: argv.output as string,
