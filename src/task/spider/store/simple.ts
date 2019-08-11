@@ -2,11 +2,25 @@ import path from 'path';
 import shelljs from 'shelljs';
 import fs from 'fs';
 
-import { SpiderStore } from './store';
+import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
+
+export type SimpleStoreFilenameCallback = (h: SpiderHandle) => string | null;
+
+export interface SimpleStoreOpts extends SpiderStoreOpts {
+  filename: string | SimpleStoreFilenameCallback;
+}
 
 
 export class SimpleStore extends SpiderStore {
+  protected opts: SimpleStoreOpts;
+
+  public constructor(opts: SimpleStoreOpts) {
+    super(opts);
+
+    this.opts = opts;
+  }
+
   public async save(h: SpiderHandle): Promise<boolean> {
     const fn = this.getFilename(h);
 
@@ -29,5 +43,14 @@ export class SimpleStore extends SpiderStore {
     fs.writeFileSync(finalFn, data.raw, 'utf8');
 
     return true;
+  }
+
+
+  protected getFilename(h: SpiderHandle): string | null {
+    if (typeof this.opts.filename === 'string') {
+      return this.opts.filename;
+    }
+
+    return this.opts.filename(h);
   }
 }

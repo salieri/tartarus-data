@@ -4,11 +4,8 @@ import path from 'path';
 import { SpiderHandle } from '../handle';
 
 
-export type SpiderStoreFilenameCallback = (h: SpiderHandle) => string | null;
-
 export interface SpiderStoreOpts {
   subDirectoryDepth: number;
-  filename: string | SpiderStoreFilenameCallback;
 }
 
 
@@ -35,14 +32,5 @@ export abstract class SpiderStore {
     );
 
     return path.join(categoryName.toLowerCase().replace(/[^a-z0-9_.-]/g, '_'), subPaths);
-  }
-
-
-  protected getFilename(h: SpiderHandle): string | null {
-    if (typeof this.opts.filename === 'string') {
-      return this.opts.filename;
-    }
-
-    return this.opts.filename(h);
   }
 }
