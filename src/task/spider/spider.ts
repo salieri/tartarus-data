@@ -1,23 +1,20 @@
-import _ from 'lodash';
 import path from 'path';
 import Joi from '@hapi/joi';
 import fs from 'fs';
-import { promisify } from 'util';
 
 import {
   Task,
   TaskOptionsInput,
-  LogLevel,
 } from '../task';
 
 import { SpiderHandle } from './handle';
 import { SpiderStore } from './store';
-import { RecoverableSpiderNavigatorFetchError, SpiderNavigator } from './navigator';
+import { SpiderNavigator } from './navigator';
 import { SpiderData } from './data';
+import { HttpFetch } from './http-fetch';
 
 
 const version = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8')).version as string;
-const wait = promisify(setTimeout);
 
 const defaultHeaders = { 'User-Agent': `Tartarus-Data-Spider/${version}` };
 
@@ -38,11 +35,23 @@ const spiderSiteConfigSchema = Joi.object().keys(
       },
     ),
 
-    behavior: Joi.object().optional().default({ delay: 1000, retryDelay: 10000, maxRetries: 10 }).keys(
+    behavior: Joi.object().optional().default(
+      {
+        delay: 1000,
+        retryDelay: 10000,
+        maxRetries: 10,
+        requestTimeout: 300000,
+        skippableHttpStatus: HttpFetch.skippableHttpStatuses,
+        recoverableHttpStatus: HttpFetch.recoverableHttpStatuses,
+      },
+    ).keys(
       {
         delay: Joi.number().integer().optional().default(1000),
         retryDelay: Joi.number().integer().optional().default(10000),
         maxRetries: Joi.number().integer().optional().default(10),
+        requestTimeout: Joi.number().integer().optional().default(300000),
+        skippableHttpStatus: Joi.array().optional().items(Joi.number()).default(HttpFetch.skippableHttpStatuses),
+        recoverableHttpStatus: Joi.array().optional().items(Joi.number()).default(HttpFetch.recoverableHttpStatuses),
       },
     ),
   },
@@ -69,6 +78,9 @@ export interface SpiderBehaviorConfigInput {
   delay?: number;
   retryDelay?: number;
   maxRetries?: number;
+  requestTimeout?: number;
+  skippableHttpStatus?: number[];
+  recoverableHttpStatus?: number[];
 }
 
 export type SpiderBehaviorConfig = FinalParameters<SpiderBehaviorConfigInput>;
@@ -123,57 +135,23 @@ export class SpiderTask extends Task {
   }
 
 
-  protected isRecoverableError(err: any): boolean {
-    return err instanceof RecoverableSpiderNavigatorFetchError;
-  }
-
-
   /* eslint-disable no-await-in-loop */
   public async run(): Promise<void> {
     let iteration = 0;
     let lastHandle = new SpiderHandle(this, 0, null, null);
 
-    const maxRetries = this.siteConfig.behavior.maxRetries;
     const delay = this.siteConfig.behavior.delay;
-    const retryDelay = this.siteConfig.behavior.retryDelay;
 
     do {
-      let success = false;
+      const newHandle = await this.navigator.attemptFetch(lastHandle, iteration);
 
-      for (let attempt = 0; (attempt < maxRetries) && (!success); attempt += 1) {
-        try {
-          const newHandle = await this.navigator.attemptFetch(lastHandle, iteration);
-
-          if ((!newHandle) || (!(await this.store.save(newHandle)))) {
-            return;
-          }
-
-          lastHandle = newHandle;
-          success = true;
-
-          await wait(delay);
-        } catch (err) {
-          this.report(LogLevel.Info, 'Fetch failed', err.originalError || err);
-
-          if (!this.isRecoverableError(err)) {
-            throw err;
-          }
-
-          if (attempt < maxRetries - 1) {
-            this.report(
-              LogLevel.Info,
-              `Retrying URL after server responded with error ${_.get(err, 'originalError.response.status')}`,
-              err,
-            );
-
-            await wait(retryDelay);
-          }
-        }
+      if ((!newHandle) || (this.navigator.isDone(newHandle)) || (!(await this.store.save(newHandle)))) {
+        return;
       }
 
-      if (!success) {
-        throw new Error(`Could not successfully retrieve file, even after ${maxRetries} retries`);
-      }
+      lastHandle = newHandle;
+
+      await this.navigator.pause(delay);
 
       iteration += 1;
     } while (true);

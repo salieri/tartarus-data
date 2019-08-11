@@ -1,21 +1,25 @@
 import chalk from 'chalk';
+import _ from 'lodash';
+import { promisify } from 'util';
 
 import { SpiderHandle } from '../handle';
 import { LogLevel } from '../../task';
 
+const wait = promisify(setTimeout);
+
 export type SpiderNavigatorUrlCallback = (h: SpiderHandle) => string | null;
+export type SpiderNavigatorIsDoneCallback = (h: SpiderHandle) => boolean;
 
 export interface SpiderNavigatorOpts {
   baseTarget: string;
   target: SpiderNavigatorUrlCallback | string;
+  isDone?: SpiderNavigatorIsDoneCallback;
 }
-
-export class RecoverableSpiderNavigatorFetchError extends Error {}
 
 
 export interface SpiderNavigatorFetchResponse {
-  data: string;
-  raw: any;
+  rawData: string;
+  rawResponse: any;
 }
 
 
@@ -25,6 +29,9 @@ export abstract class SpiderNavigator {
   public constructor(opts: SpiderNavigatorOpts) {
     this.opts = opts;
   }
+
+
+  protected abstract fetch(target: string, h: SpiderHandle): Promise<SpiderNavigatorFetchResponse>;
 
 
   public getBaseTarget(): string {
@@ -41,7 +48,21 @@ export abstract class SpiderNavigator {
   }
 
 
-  protected abstract fetch(target: string, h: SpiderHandle): Promise<SpiderNavigatorFetchResponse>;
+  public isDone(h: SpiderHandle): boolean {
+    if (this.opts.isDone) {
+      return this.opts.isDone(h);
+    }
+
+    const response = h.getResponseData();
+
+    if (!response) {
+      return true;
+    }
+
+    const data = response.data;
+
+    return ((_.isEmpty(data)) || (!_.isArray(data)) || (data.length < 1));
+  }
 
 
   public async attemptFetch(previousHandle: SpiderHandle, iteration: number): Promise<SpiderHandle | null> {
@@ -59,7 +80,7 @@ export abstract class SpiderNavigator {
 
     spider.report(LogLevel.Debug, 'Response ok');
 
-    const data = await spider.getData().parse(response.data);
+    const data = await spider.getData().parse(response.rawData);
 
     return new SpiderHandle(
       spider,
@@ -67,5 +88,10 @@ export abstract class SpiderNavigator {
       response,
       data,
     );
+  }
+
+
+  public async pause(lengthInMs: number): Promise<void> {
+    await wait(lengthInMs);
   }
 }

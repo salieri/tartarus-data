@@ -7,8 +7,13 @@ export class SpiderFileNavigator extends SpiderNavigator {
     const data = fs.readFileSync(target, 'utf8');
 
     return {
-      data,
-      raw: null,
+      rawData: data,
+      rawResponse: null,
     };
+  }
+
+
+  public async pause(): Promise<void> {
+    // do nothing
   }
 }
