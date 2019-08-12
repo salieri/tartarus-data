@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import _ from 'lodash';
 import { promisify } from 'util';
+import chalk from 'chalk';
 
 import { LogLevel } from '../task';
 import { FinalParameters, SpiderSiteConfig, SpiderTask } from './spider';
@@ -74,6 +75,8 @@ export class HttpFetch {
       const abort = axios.CancelToken.source();
       const timeout = retryOpts.requestTimeout;
       const timeoutHandle = setTimeout(() => abort.cancel('Tartarus Spider: network timeout'), timeout);
+
+      this.spider.report(LogLevel.Debug, `Fetching ${chalk.bold(requestOpts.url || '')}`);
 
       const response = await axios.request(
         _.merge(requestOpts, { cancelToken: abort.token, timeout: (timeout + 1000) }),
