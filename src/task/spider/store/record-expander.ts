@@ -49,6 +49,8 @@ export class RecordExpanderStore extends SpiderStore {
 
   protected async processRecord(record: any, h: SpiderHandle): Promise<void> {
     const storables: Storable[] = _.sortBy(await this.opts.store(record, h), 'priority');
+    const siteConfig = h.getSiteConfig();
+    const requestDelay = siteConfig.behavior.delay;
 
     await _.reduce(
       storables,
@@ -57,6 +59,7 @@ export class RecordExpanderStore extends SpiderStore {
 
         if ((!this.opts.skipExisting) || (!storable.exists(this, h))) {
           await storable.store(this, h);
+          await storable.pause(requestDelay);
         }
       },
       Promise.resolve(),

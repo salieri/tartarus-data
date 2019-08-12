@@ -6,6 +6,7 @@ import shelljs from 'shelljs';
 import { SpiderHandle } from '../../handle';
 import { SpiderStore } from '../store';
 
+const wait = promisify(setTimeout);
 const writeFilePromised = promisify(fs.writeFile);
 
 export abstract class Storable {
@@ -42,6 +43,11 @@ export abstract class Storable {
       this.getTargetDirectory(store, h),
       this.filename,
     );
+  }
+
+
+  public async pause(timeInMillis: number): Promise<void> {
+    wait(timeInMillis);
   }
 
 

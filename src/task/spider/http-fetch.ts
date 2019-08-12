@@ -76,7 +76,7 @@ export class HttpFetch {
       const timeoutHandle = setTimeout(() => abort.cancel('Tartarus Spider: network timeout'), timeout);
 
       const response = await axios.request(
-        _.merge(requestOpts, { cancelToken: abort, timeout: (timeout + 1000) }),
+        _.merge(requestOpts, { cancelToken: abort.token, timeout: (timeout + 1000) }),
       );
 
       clearTimeout(timeoutHandle);

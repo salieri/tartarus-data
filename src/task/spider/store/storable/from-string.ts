@@ -15,6 +15,12 @@ export class StorableFromString extends Storable {
     this.encoding = encoding;
   }
 
+
+  public async pause(): Promise<void> {
+    // do nothing
+  }
+
+
   public async store(store: SpiderStore, h: SpiderHandle): Promise<void> {
     await this.writeFile(this.data, store, h, this.encoding);
   }
