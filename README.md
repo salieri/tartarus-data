@@ -1,4 +1,4 @@
-# Tartarus Dataset Fetch and Cleanup Scripts
+# Tartarus Dataset Fetch and Cleanup Tools
 
 Various scripts for downloading and building datasets.
 
