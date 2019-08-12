@@ -74,12 +74,9 @@ export abstract class SpiderNavigator {
 
     const spider = previousHandle.getSpider();
 
-    spider.report(LogLevel.Info, `Fetching ${chalk.bold(target)}`);
+    // spider.report(LogLevel.Info, `Fetching ${chalk.bold(target)}`);
 
     const response = await this.fetch(target, previousHandle);
-
-    spider.report(LogLevel.Debug, 'Response ok');
-
     const data = await spider.getData().parse(response.rawData);
 
     return new SpiderHandle(

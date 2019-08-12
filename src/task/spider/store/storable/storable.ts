@@ -12,7 +12,7 @@ const writeFilePromised = promisify(fs.writeFile);
 export abstract class Storable {
   public readonly priority: number;
 
-  protected readonly filename: string;
+  public readonly filename: string;
 
   protected constructor(filename: string, priority: number) {
     this.filename = filename;
@@ -47,7 +47,7 @@ export abstract class Storable {
 
 
   public async pause(timeInMillis: number): Promise<void> {
-    wait(timeInMillis);
+    await wait(timeInMillis);
   }
 
 

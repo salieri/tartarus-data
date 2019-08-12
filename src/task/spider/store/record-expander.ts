@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
 import { Storable } from './storable';
+import { LogLevel } from '../../task';
 
 
 export type SpiderStorableCallback = (record: any, h: SpiderHandle) => Promise<Storable[]>;
@@ -60,6 +61,8 @@ export class RecordExpanderStore extends SpiderStore {
         if ((!this.opts.skipExisting) || (!storable.exists(this, h))) {
           await storable.store(this, h);
           await storable.pause(requestDelay);
+        } else {
+          h.getSpider().report(LogLevel.Debug, `Skipping ${storable.filename} because it already exists`);
         }
       },
       Promise.resolve(),
