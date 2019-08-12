@@ -73,18 +73,36 @@ export abstract class SpiderNavigator {
     }
 
     const spider = previousHandle.getSpider();
+    const response = await this.fetch(target, previousHandle); // this throws SkippableError, so don't catch it here
 
-    // spider.report(LogLevel.Info, `Fetching ${chalk.bold(target)}`);
+    try {
+      const data = await spider.getData().parse(response.rawData);
 
-    const response = await this.fetch(target, previousHandle);
-    const data = await spider.getData().parse(response.rawData);
+      return new SpiderHandle(
+        spider,
+        iteration,
+        response,
+        data,
+      );
+    } catch (err) {
+      previousHandle.getSpider().report(
+        LogLevel.Error,
+        `Data parsing failed while trying to fetch ${target}`,
+        err.message,
+      );
 
-    return new SpiderHandle(
-      spider,
-      iteration,
-      response,
-      data,
-    );
+      previousHandle.getSpider().report(
+        LogLevel.Debug,
+        'Data parsing failure RAW DATA ===>',
+        response.rawData,
+        '<=== RAW DATA',
+        'RAW RESPONSE ===>',
+        response.rawResponse,
+        '<=== RAW RESPONSE',
+      );
+
+      throw err;
+    }
   }
 
 
