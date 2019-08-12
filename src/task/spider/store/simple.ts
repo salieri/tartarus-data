@@ -5,10 +5,13 @@ import fs from 'fs';
 import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
 
+export type SimpleStoreDataCallback = (h: SpiderHandle) => Promise<string | null> | string | null;
 export type SimpleStoreFilenameCallback = (h: SpiderHandle) => string | null;
 
 export interface SimpleStoreOpts extends SpiderStoreOpts {
   filename: string | SimpleStoreFilenameCallback;
+  encoding?: string;
+  data?: SimpleStoreDataCallback;
 }
 
 
@@ -32,7 +35,7 @@ export class SimpleStore extends SpiderStore {
     const filePath = h.getPath(this.getSubPaths(baseName, h.getSiteConfig().name));
 
     const finalFn = path.join(filePath, fn);
-    const data = h.getResponseData();
+    const data = await this.getStorableData(h);
 
     if (!data) {
       throw new Error('Missing response data');
@@ -40,9 +43,24 @@ export class SimpleStore extends SpiderStore {
 
     shelljs.mkdir('-p', filePath);
 
-    fs.writeFileSync(finalFn, data.raw, 'utf8');
+    fs.writeFileSync(finalFn, data, this.opts.encoding || 'utf8');
 
     return true;
+  }
+
+
+  protected async getStorableData(h: SpiderHandle): Promise<string | null> {
+    if (this.opts.data) {
+      return this.opts.data(h);
+    }
+
+    const data = h.getResponseData();
+
+    if (!data) {
+      return null;
+    }
+
+    return data.raw;
   }
 
 
