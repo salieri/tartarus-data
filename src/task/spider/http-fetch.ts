@@ -126,11 +126,11 @@ export class HttpFetch {
       } catch (err) {
         this.spider.report(LogLevel.Debug, 'HTTP fetch failed', err.originalError || err);
 
-        if (this.isSkippableError(err, finalRetryOpts)) {
+        if (err instanceof SkippableFetchError) {
           throw err;
         }
 
-        if (!this.isRecoverableError(err, finalRetryOpts)) {
+        if (!(err instanceof RecoverableFetchError)) {
           throw err;
         }
 

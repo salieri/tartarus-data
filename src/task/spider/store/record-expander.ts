@@ -66,6 +66,12 @@ export class RecordExpanderStore extends SpiderStore {
             if (!(err instanceof SkippableFetchError)) {
               throw err;
             }
+
+            h.getSpider().report(
+              LogLevel.Info,
+              `Skipping ${storable.filename} due to fetch error`,
+              _.get(err, 'originalError.response.status'),
+            );
           }
 
           await storable.pause(requestDelay);
