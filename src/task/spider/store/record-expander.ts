@@ -4,6 +4,7 @@ import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
 import { Storable } from './storable';
 import { LogLevel } from '../../task';
+import { SkippableFetchError } from '../http-fetch';
 
 
 export type SpiderStorableCallback = (record: any, h: SpiderHandle) => Promise<Storable[]>;
@@ -59,7 +60,14 @@ export class RecordExpanderStore extends SpiderStore {
         await previousPromise;
 
         if ((!this.opts.skipExisting) || (!storable.exists(this, h))) {
-          await storable.store(this, h);
+          try {
+            await storable.store(this, h);
+          } catch (err) {
+            if (!(err instanceof SkippableFetchError)) {
+              throw err;
+            }
+          }
+
           await storable.pause(requestDelay);
         } else {
           h.getSpider().report(LogLevel.Debug, `Skipping ${storable.filename} because it already exists`);
