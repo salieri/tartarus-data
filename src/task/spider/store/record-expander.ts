@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import shelljs from 'shelljs';
 
 import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
@@ -13,6 +14,7 @@ export type SpiderStorableCallback = (record: any, h: SpiderHandle) => Promise<S
 export interface RecordExpanderStoreOpts extends SpiderStoreOpts {
   store: SpiderStorableCallback;
   skipExisting?: boolean;
+  skipClearOnFailure?: boolean;
 }
 
 
@@ -54,32 +56,54 @@ export class RecordExpanderStore extends SpiderStore {
     const siteConfig = h.getSiteConfig();
     const requestDelay = siteConfig.behavior.delay;
 
-    await _.reduce(
-      storables,
-      async (previousPromise: Promise<any>, storable: Storable) => {
-        await previousPromise;
+    try {
+      await _.reduce(
+        storables,
+        async (previousPromise: Promise<any>, storable: Storable) => {
+          await previousPromise;
 
-        if ((!this.opts.skipExisting) || (!storable.exists(this, h))) {
-          try {
-            await storable.store(this, h);
-          } catch (err) {
-            if (!(err instanceof SkippableFetchError)) {
-              throw err;
+          if ((!this.opts.skipExisting) || (!storable.exists(this, h))) {
+            try {
+              await storable.store(this, h);
+            } catch (err) {
+              if ((!(err instanceof SkippableFetchError)) || (!this.opts.skipClearOnFailure)) {
+                throw err;
+              }
+
+              h.getSpider().report(
+                LogLevel.Info,
+                `Skipping ${storable.filename} due to fetch error`,
+                _.get(err, 'originalError.response.status'),
+              );
             }
 
-            h.getSpider().report(
-              LogLevel.Info,
-              `Skipping ${storable.filename} due to fetch error`,
-              _.get(err, 'originalError.response.status'),
-            );
+            await storable.pause(requestDelay);
+          } else {
+            h.getSpider().report(LogLevel.Debug, `Skipping ${storable.filename} because it already exists`);
           }
+        },
+        Promise.resolve(),
+      );
+    } catch (err) {
+      if ((!(err instanceof SkippableFetchError)) || (this.opts.skipClearOnFailure)) {
+        throw err;
+      }
 
-          await storable.pause(requestDelay);
-        } else {
-          h.getSpider().report(LogLevel.Debug, `Skipping ${storable.filename} because it already exists`);
-        }
+      this.removeFiles(storables, h);
+    }
+  }
+
+
+  protected removeFiles(storables: Storable[], h: SpiderHandle): void {
+    _.each(
+      storables,
+      (storable: Storable) => {
+        const fullFilename = storable.getTargetFilename(this, h);
+
+        h.getSpider().report(LogLevel.Info, `Removing ${fullFilename} because it was part of a failed download set`);
+
+        shelljs.rm('-f', fullFilename);
       },
-      Promise.resolve(),
     );
   }
 }

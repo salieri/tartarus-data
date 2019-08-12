@@ -8,9 +8,24 @@ import { FinalParameters, SpiderSiteConfig, SpiderTask } from './spider';
 
 const wait = promisify(setTimeout);
 
+// @link https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
+export class RecoverableFetchError extends Error {
+  public constructor(m: string) {
+    super(m);
 
-export class RecoverableFetchError extends Error {}
-export class SkippableFetchError extends Error {}
+    Object.setPrototypeOf(this, RecoverableFetchError.prototype);
+  }
+}
+
+
+// @https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
+export class SkippableFetchError extends Error {
+  public constructor(m: string) {
+    super(m);
+
+    Object.setPrototypeOf(this, SkippableFetchError.prototype);
+  }
+}
 
 
 export interface RetryOpts {
@@ -100,15 +115,15 @@ export class HttpFetch {
         throw newErr;
       }
 
-      if (!this.isRecoverableError(err, retryOpts)) {
-        throw err;
+      if (this.isRecoverableError(err, retryOpts)) {
+        const newErr = new RecoverableFetchError(err.message);
+
+        (newErr as any).originalError = err;
+
+        throw newErr;
       }
 
-      const newErr = new RecoverableFetchError(err.message);
-
-      (newErr as any).originalError = err;
-
-      throw newErr;
+      throw err;
     }
   }
 
@@ -129,9 +144,9 @@ export class HttpFetch {
     for (let attempt = 0; (attempt < finalRetryOpts.maxRetries); attempt += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        return await this.attemptFetch(requestOpts, finalRetryOpts);
+        return (await this.attemptFetch(requestOpts, finalRetryOpts));
       } catch (err) {
-        this.spider.report(LogLevel.Debug, 'HTTP fetch failed', err.originalError || err);
+        this.spider.report(LogLevel.Debug, 'HTTP fetch failed', err.message);
 
         if (err instanceof SkippableFetchError) {
           throw err;

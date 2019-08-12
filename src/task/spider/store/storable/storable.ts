@@ -33,12 +33,12 @@ export abstract class Storable {
   }
 
 
-  protected getTargetDirectory(store: SpiderStore, h: SpiderHandle): string {
+  public getTargetDirectory(store: SpiderStore, h: SpiderHandle): string {
     return h.getPath(store.getSubPaths(this.filename, h.getSiteConfig().name));
   }
 
 
-  protected getTargetFilename(store: SpiderStore, h: SpiderHandle): string {
+  public getTargetFilename(store: SpiderStore, h: SpiderHandle): string {
     return path.join(
       this.getTargetDirectory(store, h),
       this.filename,

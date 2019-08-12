@@ -1,6 +1,6 @@
 {
   "name": "@tartarus/data",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Helper tools for downloading and building datasets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
