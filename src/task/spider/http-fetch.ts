@@ -71,21 +71,27 @@ export class HttpFetch {
 
 
   protected async attemptFetch(requestOpts: AxiosRequestConfig, retryOpts: RetryOptsFinal): Promise<AxiosResponse<any>> {
+    const abort = axios.CancelToken.source();
+    const timeout = retryOpts.requestTimeout;
+    let timeoutHandle: NodeJS.Timeout | null = setTimeout(() => abort.cancel('Tartarus Spider: network timeout'), timeout);
+
+    this.spider.report(LogLevel.Debug, `Fetching ${chalk.bold(requestOpts.url || '')}`);
+
     try {
-      const abort = axios.CancelToken.source();
-      const timeout = retryOpts.requestTimeout;
-      const timeoutHandle = setTimeout(() => abort.cancel('Tartarus Spider: network timeout'), timeout);
-
-      this.spider.report(LogLevel.Debug, `Fetching ${chalk.bold(requestOpts.url || '')}`);
-
       const response = await axios.request(
         _.merge(requestOpts, { cancelToken: abort.token, timeout: (timeout + 1000) }),
       );
 
       clearTimeout(timeoutHandle);
 
+      timeoutHandle = null;
+
       return response;
     } catch (err) {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+
       if (this.isSkippableError(err, retryOpts)) {
         const newErr = new SkippableFetchError(err.message);
 
@@ -122,7 +128,8 @@ export class HttpFetch {
 
     for (let attempt = 0; (attempt < finalRetryOpts.maxRetries); attempt += 1) {
       try {
-        return this.attemptFetch(requestOpts, finalRetryOpts);
+        // eslint-disable-next-line no-await-in-loop
+        return await this.attemptFetch(requestOpts, finalRetryOpts);
       } catch (err) {
         this.spider.report(LogLevel.Debug, 'HTTP fetch failed', err.originalError || err);
 
