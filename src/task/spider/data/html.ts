@@ -10,7 +10,7 @@ export interface HtmlSpiderDataOpts extends SpiderDataOpts {
 
 export class SpiderHtmlData extends SpiderData {
   // eslint-disable-next-line no-useless-constructor
-  public constructor(opts: HtmlSpiderDataOpts) {
+  public constructor(opts: HtmlSpiderDataOpts = {}) {
     super(opts);
   }
 

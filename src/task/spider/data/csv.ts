@@ -5,12 +5,12 @@ import { SpiderData, SpiderDataOpts } from './data';
 
 
 export interface CsvSpiderDataOpts extends SpiderDataOpts {
-  csvConfig: CSVParseParam;
+  csvConfig?: CSVParseParam;
 }
 
 export class SpiderCsvData extends SpiderData {
   // eslint-disable-next-line no-useless-constructor
-  public constructor(opts: CsvSpiderDataOpts) {
+  public constructor(opts: CsvSpiderDataOpts = {}) {
     super(opts);
   }
 

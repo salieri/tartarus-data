@@ -8,7 +8,7 @@ export interface XmlSpiderDataOpts extends SpiderDataOpts {
 
 export class SpiderXmlData extends SpiderData {
   // eslint-disable-next-line no-useless-constructor
-  public constructor(opts: XmlSpiderDataOpts) {
+  public constructor(opts: XmlSpiderDataOpts = {}) {
     super(opts);
   }
 

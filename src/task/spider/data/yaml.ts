@@ -8,7 +8,7 @@ export interface YamlSpiderDataOpts extends SpiderDataOpts {
 
 export class SpiderYamlData extends SpiderData {
   // eslint-disable-next-line no-useless-constructor
-  public constructor(opts: YamlSpiderDataOpts) {
+  public constructor(opts: YamlSpiderDataOpts = {}) {
     super(opts);
   }
 
