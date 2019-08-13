@@ -3,7 +3,6 @@ import { promisify } from 'util';
 
 import { SpiderHandle } from '../handle';
 import { LogLevel } from '../../task';
-import { RecoverableFetchError } from '../http-fetch';
 
 const wait = promisify(setTimeout);
 
