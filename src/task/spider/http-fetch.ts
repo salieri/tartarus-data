@@ -39,6 +39,13 @@ export interface RetryOpts {
 export type RetryOptsFinal = FinalParameters<RetryOpts>;
 
 
+type OmittedAxiosRequestConfig = Omit<AxiosRequestConfig, 'url'>;
+
+export interface AxiosRequestConfigExtended extends OmittedAxiosRequestConfig {
+  url: string | string[];
+}
+
+
 export class HttpFetch {
   protected spider: SpiderTask;
 
@@ -128,7 +135,7 @@ export class HttpFetch {
   }
 
 
-  public async fetch(requestOpts: AxiosRequestConfig, retryOpts: RetryOpts): Promise<AxiosResponse<any>> {
+  public async fetch(requestOpts: AxiosRequestConfigExtended, retryOpts: RetryOpts): Promise<AxiosResponse<any>> {
     const finalRetryOpts: RetryOptsFinal = _.merge(
       {
         maxRetries: 15,
@@ -140,37 +147,54 @@ export class HttpFetch {
       retryOpts,
     );
 
+    const urlAlternatives = _.castArray(requestOpts.url);
+    const cleanedRequestOpts = _.cloneDeep(requestOpts);
+
+    let urlIndex = 0;
 
     for (let attempt = 0; (attempt < finalRetryOpts.maxRetries); attempt += 1) {
       try {
+        cleanedRequestOpts.url = urlAlternatives[urlIndex];
+
         // eslint-disable-next-line no-await-in-loop
-        return (await this.attemptFetch(requestOpts, finalRetryOpts));
+        return (await this.attemptFetch(cleanedRequestOpts as AxiosRequestConfig, finalRetryOpts));
       } catch (err) {
         this.spider.report(LogLevel.Debug, 'HTTP fetch failed', err.message);
 
-        if (err instanceof SkippableFetchError) {
-          throw err;
-        }
-
-        if (!(err instanceof RecoverableFetchError)) {
-          throw err;
-        }
-
-        if (attempt < finalRetryOpts.maxRetries - 1) {
-          this.spider.report(
-            LogLevel.Debug,
-            `Retrying URL after server responded with error ${_.get(err, 'originalError.response.status')}`,
-            err,
-          );
-
-          // eslint-disable-next-line no-await-in-loop
-          await wait(finalRetryOpts.retryDelay);
+        if (
+          (urlAlternatives.length > 1)
+          && (urlIndex < urlAlternatives.length - 1)
+          && (err instanceof SkippableFetchError)
+          && (_.get(err, 'originalError.response.status') === 404)
+        ) {
+          urlIndex += 1;
         } else {
-          const newErr = new Error(`Could not successfully retrieve '${requestOpts.url}', even after ${finalRetryOpts.maxRetries} retries`);
+          if (err instanceof SkippableFetchError) {
+            throw err;
+          }
 
-          (newErr as any).originalError = err;
+          if (!(err instanceof RecoverableFetchError)) {
+            throw err;
+          }
 
-          throw newErr;
+          if (attempt < finalRetryOpts.maxRetries - 1) {
+            this.spider.report(
+              LogLevel.Debug,
+              `Retrying URL after server responded with error ${_.get(err, 'originalError.response.status')}`,
+              err,
+            );
+
+            // eslint-disable-next-line no-await-in-loop
+            await wait(finalRetryOpts.retryDelay);
+          } else {
+            const newErr = new Error(
+              `Could not successfully retrieve '${requestOpts.url}', even after ${finalRetryOpts.maxRetries} retries`,
+            );
+
+            (newErr as any).originalError = err;
+
+            throw newErr;
+          }
         }
       }
     }

@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { Storable } from './storable';
 import { SpiderHandle } from '../../handle';
 import { SpiderStore } from '../store';
@@ -5,9 +7,9 @@ import { HttpFetch } from '../../http-fetch';
 
 
 export class StorableFromUrl extends Storable {
-  protected url: string;
+  protected url: string | string[];
 
-  public constructor(filename: string, url: string) {
+  public constructor(filename: string, url: string | string[]) {
     super(filename, -10);
 
     this.url = url;
@@ -30,6 +32,10 @@ export class StorableFromUrl extends Storable {
       },
       HttpFetch.determineRetryOpts(siteConfig),
     );
+
+    if (_.isArray(this.url)) {
+
+    }
 
     await this.writeFile(response.data, store, h);
   }
