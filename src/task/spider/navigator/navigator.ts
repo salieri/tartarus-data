@@ -1,9 +1,9 @@
-import chalk from 'chalk';
 import _ from 'lodash';
 import { promisify } from 'util';
 
 import { SpiderHandle } from '../handle';
 import { LogLevel } from '../../task';
+import { RecoverableFetchError } from '../http-fetch';
 
 const wait = promisify(setTimeout);
 
@@ -101,7 +101,11 @@ export abstract class SpiderNavigator {
         '<=== RAW RESPONSE',
       );
 
-      throw err;
+      const newErr = new RecoverableFetchError(err.message);
+
+      (newErr as any).originalError = newErr;
+
+      throw newErr;
     }
   }
 
