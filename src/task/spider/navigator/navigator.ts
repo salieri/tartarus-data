@@ -67,46 +67,54 @@ export abstract class SpiderNavigator {
 
   public async attemptFetch(previousHandle: SpiderHandle, iteration: number): Promise<SpiderHandle | null> {
     const target = await this.getNext(previousHandle);
+    const siteConfig = previousHandle.getSiteConfig();
 
     if (!target) {
       return null;
     }
 
     const spider = previousHandle.getSpider();
-    const response = await this.fetch(target, previousHandle); // this throws SkippableError, so don't catch it here
 
-    try {
-      const data = await spider.getData().parse(response.rawData);
+    /* eslint-disable no-await-in-loop */
+    for (let i = 0; i < siteConfig.behavior.maxRetries; i += 1) {
+      const response = await this.fetch(target, previousHandle); // this throws SkippableError, so don't catch it here
 
-      return new SpiderHandle(
-        spider,
-        iteration,
-        response,
-        data,
-      );
-    } catch (err) {
-      previousHandle.getSpider().report(
-        LogLevel.Error,
-        `Data parsing failed while trying to fetch ${target}`,
-        err.message,
-      );
+      try {
+        const data = await spider.getData().parse(response.rawData);
 
-      previousHandle.getSpider().report(
-        LogLevel.Debug,
-        'Data parsing failure RAW DATA ===>',
-        response.rawData,
-        '<=== RAW DATA',
-        'RAW RESPONSE ===>',
-        response.rawResponse,
-        '<=== RAW RESPONSE',
-      );
+        return new SpiderHandle(
+          spider,
+          iteration,
+          response,
+          data,
+        );
+      } catch (err) {
+        previousHandle.getSpider().report(
+          LogLevel.Error,
+          `Data parsing failed while trying to fetch ${target}`,
+          err.message,
+        );
 
-      const newErr = new RecoverableFetchError(err.message);
+        previousHandle.getSpider().report(
+          LogLevel.Debug,
+          'Data parsing failure RAW DATA ===>',
+          response.rawData,
+          '<=== RAW DATA',
+          'RAW RESPONSE ===>',
+          response.rawResponse,
+          '<=== RAW RESPONSE',
+        );
 
-      (newErr as any).originalError = newErr;
-
-      throw newErr;
+        if (i >= siteConfig.behavior.maxRetries - 1) {
+          throw err;
+        } else {
+          await this.pause(siteConfig.behavior.retryDelay);
+        }
+      }
     }
+
+    // never reached
+    return null;
   }
 
 
