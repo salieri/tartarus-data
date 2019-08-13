@@ -5,6 +5,7 @@ import fs from 'fs';
 import { SpiderStore, SpiderStoreOpts } from './store';
 import { SpiderHandle } from '../handle';
 
+export type SimpleStorePostSaveCallback = (filename: string, h: SpiderHandle) => Promise<void> | void;
 export type SimpleStoreDataCallback = (h: SpiderHandle) => Promise<string | null> | string | null;
 export type SimpleStoreFilenameCallback = (h: SpiderHandle) => string | null;
 
@@ -12,6 +13,7 @@ export interface SimpleStoreOpts extends SpiderStoreOpts {
   filename: string | SimpleStoreFilenameCallback;
   encoding?: string;
   data?: SimpleStoreDataCallback;
+  post?: SimpleStorePostSaveCallback;
 }
 
 
@@ -44,6 +46,10 @@ export class SimpleStore extends SpiderStore {
     shelljs.mkdir('-p', filePath);
 
     fs.writeFileSync(finalFn, data, this.opts.encoding || 'utf8');
+
+    if (this.opts.post) {
+      await this.opts.post(finalFn, h);
+    }
 
     return true;
   }
