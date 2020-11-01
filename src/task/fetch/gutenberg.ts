@@ -50,7 +50,7 @@ export class GutenbergFetchTask extends FetchTask {
         '--no-host-directories',
         '--timestamping',
         '--include', '/dirs,/files',
-        '--reject', (opts.withImages ? 'htm,txt' : 'htm,txt,gif,png,jpg,jpeg,bmp'),
+        '--reject', (opts.withImages ? 'htm,txt' : 'htm,txt,gif,png,jpg,jpeg,bmp,mp3'),
         '--directory-prefix', this.getPath(GutenbergFetchTask.OUTPUT_PATH),
         ...(opts.mode === FetchTaskMode.Continue ? ['--continue'] : []),
         ...(opts.mode === FetchTaskMode.Skip ? ['--no-clobber'] : []),
